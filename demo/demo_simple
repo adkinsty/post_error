@@ -1,0 +1,68 @@
+setwd('/Users/adkinsty/Dropbox (University of Michigan)/LeeLab/Experiments/Exp_files/forced_response/post_error/demo')
+
+library(tidyverse)
+
+get_theta <- function(phi, alpha, beta) {
+  psi <- c()
+  psi[1] = (1 - phi) * alpha
+  psi[2] = phi * beta
+  return(sum(psi))
+}
+
+N <- 1e4
+
+plot_all <- list(geom_line(size = .5, colour = 'blue'), 
+  scale_x_continuous("Time", breaks = seq(0, 1, .1)),
+  theme_classic(base_size = 10),
+  theme(legend.position = "none", axis.text = element_blank()))
+plot_dens <- list(plot_all,
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 5)), 
+  scale_y_continuous("PDF"))
+plot_phi <- list(plot_all,
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)), 
+  scale_y_continuous("CDF", breaks = seq(0, 1, .1)))
+plot_theta <- list(plot_all,
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)), 
+  scale_y_continuous("Accuracy", breaks = seq(0, 1, .1)))
+
+
+dat <- tibble(
+    alpha = .25, 
+    mu = .4, 
+    sigma = .15, 
+    beta = .9,
+    time = runif(N)) %>%
+  rowwise() %>% 
+  mutate(
+    dens = dnorm(time, mu, sigma),
+    phi = pnorm(time, mu, sigma),
+    theta = get_theta(phi, alpha, beta))
+
+dat %>% 
+  ggplot(aes(x = time, y = dens)) +
+  plot_dens +
+  ggsave("fig/simple_dens.jpg", units = "in", height = 1.5, width = 2, dpi = 1000)
+
+dat %>% 
+  ggplot(aes(x = time, y = phi)) +
+  plot_phi +
+  ggsave("fig/simple_phi.jpg", units = "in", height = 1.5, width = 2, dpi = 1000)
+
+dat %>% 
+  ggplot(aes(x = time, y = 1 - phi)) +
+  plot_phi +
+  ggsave("fig/simple_not_phi.jpg", units = "in", height = 1.5, width = 2, dpi = 1000)
+
+dat %>% 
+  ggplot(aes(x = time, y = theta)) +
+  plot_theta +
+  geom_hline(yintercept = .25, linetype = 'dashed', colour = 'black', size = .25, alpha = .25) +
+  ggsave("fig/simple_theta.jpg", units = "in", height = 1.5, width = 2, dpi = 1000)
+
+
+dat %>% 
+  group_by('beta') %>% summarise(beta = mean(beta)) %>%
+  ggplot(aes(x = 'beta', y = beta)) + 
+  geom_col(width = .25) +
+  coord_cartesian(ylim = c(0, 1)) +
+  ggsave("fig/simple_beta.jpg", units = "in", height = 1.5, width = 2, dpi = 1000)
